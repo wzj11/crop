@@ -11,14 +11,17 @@ import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
 
+crop_num = 0
+
 def extract_bbox(frame, fa):
-    print(frame.shape[0], frame.shape[1])
     if max(frame.shape[0], frame.shape[1]) > 640:
+        # 1920 / 640
         scale_factor =  max(frame.shape[0], frame.shape[1]) / 640.0
         frame = resize(frame, (int(frame.shape[0] / scale_factor), int(frame.shape[1] / scale_factor)))
         frame = img_as_ubyte(frame)
     else:
         scale_factor = 1
+    #三通道视频
     frame = frame[..., :3]
     bboxes = fa.face_detector.detect_from_image(frame[..., ::-1])
     if len(bboxes) == 0:
@@ -70,7 +73,11 @@ def compute_bbox(start, end, fps, tube_bbox, frame_shape, inp, image_shape, incr
 
     scale = f'{image_shape[0]}:{image_shape[1]}'
 
-    return f'ffmpeg -i {inp} -ss {start} -t {time} -filter:v "crop={w}:{h}:{left}:{top}, scale={scale}" crop.mp4'
+    urlist = inp.split('/')
+    name = urlist[-1].split('.')[0]
+    global crop_num
+    crop_num += 1
+    return f'ffmpeg -i {inp} -ss {start} -t {time} -filter:v "crop={w}:{h}:{left}:{top}, scale={scale}" {name}_crop{crop_num}.mp4'
 
 
 def compute_bbox_trajectories(trajectories, fps, frame_shape, args):
@@ -99,6 +106,8 @@ def process_video(args):
             not_valid_trajectories = []
             valid_trajectories = []
 
+            print(trajectories)
+            # bb_intersection_over_union
             for trajectory in trajectories:
                 tube_bbox = trajectory[0]
                 intersection = 0
